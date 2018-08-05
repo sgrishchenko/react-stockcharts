@@ -59,12 +59,23 @@ export default function fitDimensions(WrappedComponent, props = {}) {
 			}
 			return 1;
 		}
+
+		recalculateSize() {
+			if (this.parentNode) {
+				const dimensions = getDimensions(this.parentNode);
+
+				if (dimensions.width !== this.state.width ||
+					dimensions.height !== this.state.height
+				) {
+					this.setState(dimensions);
+				}
+			}
+		}
+
 		componentDidMount() {
-			const node = ReactDOM.findDOMNode(this.node).parentNode; // eslint-disable-line react/no-find-dom-node
-			this.elementResizeEventUnbind = elementResizeEvent(node, () => {
-				this.setState(getDimensions(node));
-			});
-			const dimensions = getDimensions(node);
+			this.parentNode = ReactDOM.findDOMNode(this.node).parentNode; // eslint-disable-line react/no-find-dom-node
+			this.elementResizeEventUnbind = elementResizeEvent(this.parentNode, () => this.recalculateSize());
+			const dimensions = getDimensions(this.parentNode);
 
 			/* eslint-disable react/no-did-mount-set-state */
 			this.setState({
