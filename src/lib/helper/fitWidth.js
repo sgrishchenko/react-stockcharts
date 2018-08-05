@@ -44,16 +44,24 @@ export default function fitWidth(WrappedComponent, withRef = true, minWidth = 10
 			}
 			return 1;
 		}
+
+
+		recalculateSize() {
+			if (this.parentNode) {
+				const width = getWidth(this.parentNode);
+
+				if (width !== this.state.width) {
+					this.setState({ width });
+				}
+			}
+		}
+
 		componentDidMount() {
-			const node = ReactDOM.findDOMNode(this.node).parentNode; // eslint-disable-line react/no-find-dom-node
-			this.elementResizeEventUnbind = elementResizeEvent(node, () => {
-				this.setState({
-					width: getWidth(node)
-				});
-			});
+			this.parentNode = ReactDOM.findDOMNode(this.node).parentNode; // eslint-disable-line react/no-find-dom-node
+			this.elementResizeEventUnbind = elementResizeEvent(this.parentNode, () => this.recalculateSize());
 			/* eslint-disable react/no-did-mount-set-state */
 			this.setState({
-				width: getWidth(node),
+				width: getWidth(this.parentNode),
 				ratio: this.getRatio(),
 			});
 			/* eslint-enable react/no-did-mount-set-state */
