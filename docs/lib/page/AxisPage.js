@@ -29,6 +29,6 @@ class AxisPage extends React.Component {
 	}
 }
 
-AxisPage.title = "Axis";
+AxisPage.title = "Axis autowidth";
 
 export default AxisPage;

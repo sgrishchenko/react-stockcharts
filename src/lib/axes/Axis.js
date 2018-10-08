@@ -7,7 +7,7 @@ import GenericChartComponent from "../GenericChartComponent";
 import { getAxisCanvas } from "../GenericComponent";
 import AxisZoomCapture from "./AxisZoomCapture";
 
-import { noop, first, last, hexToRGBA, isNotDefined, isDefined, identity, zipper, strokeDashTypes, getStrokeDasharray } from "../utils";
+import { first, last, hexToRGBA, isNotDefined, isDefined, identity, zipper, strokeDashTypes, getStrokeDasharray } from "../utils";
 
 class Axis extends Component {
 	constructor(props) {
@@ -77,7 +77,7 @@ class Axis extends Component {
 					width: 0,
 					height: 0
 				});
-	
+
 				onGetTickLabelDimensions(tickDimensions);
 			}
 		} else {
@@ -377,7 +377,7 @@ function drawEachTickLabel(ctx, tick, result, cachedSizes) {
 
 			return {
 				[text]: {
-					width:  widthSpacing + width,
+					width: widthSpacing + width,
 					height: heightSpacing + fontSize
 				}
 			};
