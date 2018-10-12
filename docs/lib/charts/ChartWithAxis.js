@@ -1,26 +1,39 @@
 import React from "react";
 import PropTypes from "prop-types";
-
-import { format } from "d3-format";
-import { timeFormat } from "d3-time-format";
+import memoize from "lodash.memoize";
+import { utcDay } from "d3-time";
 
 import { ChartCanvas, Chart } from "react-stockcharts";
-import { BarSeries, CandlestickSeries } from "react-stockcharts/lib/series";
+import { CandlestickSeries } from "react-stockcharts/lib/series";
 import { XAxis, YAxis } from "react-stockcharts/lib/axes";
-import {
-	CrossHairCursor,
-	MouseCoordinateX,
-	MouseCoordinateY
-} from "react-stockcharts/lib/coordinates";
+import { last, timeIntervalBarWidth } from "react-stockcharts/lib/utils";
 
 import { discontinuousTimeScaleProvider } from "react-stockcharts/lib/scale";
-import { OHLCTooltip } from "react-stockcharts/lib/tooltip";
 import { fitWidth } from "react-stockcharts/lib/helper";
-import { last } from "react-stockcharts/lib/utils";
 
 class ChartWithAxis extends React.Component {
+	constructor(props) {
+		super(props);
+		this.state = {
+			leftAxis: 0,
+			rightAxis: 0,
+			topAxis: 0,
+			bottomAxis: 0,
+		};
+
+		this.updateAxisWidth = memoize(side => width => {
+			const sideKey = side + "Axis";
+			const oldWidth = this.state[sideKey];
+			if (oldWidth < width) {
+				this.setState({
+					[side + "Axis"]: width
+				});
+			}
+		});
+	}
 	render() {
 		const { type, data: initialData, width, ratio } = this.props;
+		const {	leftAxis, rightAxis, topAxis, bottomAxis } = this.state;
 
 		const xScaleProvider = discontinuousTimeScaleProvider.inputDateAccessor(
 			d => d.date
@@ -32,25 +45,33 @@ class ChartWithAxis extends React.Component {
 		const start = xAccessor(last(data));
 		const end = xAccessor(data[Math.max(0, data.length - 150)]);
 		const xExtents = [start, end];
+		const tickLength = 20;
+		const margin = {
+			left: leftAxis.width + tickLength,
+			right: rightAxis.width + tickLength,
+			top: topAxis.height + tickLength,
+			bottom: bottomAxis.height + tickLength
+		};
 
 		return (
 			<ChartCanvas
 				height={400}
 				ratio={ratio}
 				width={width}
-				margin={{ left: 70, right: 70, top: 30, bottom: 30 }}
+				margin={margin}
 				type={type}
 				seriesName="MSFT"
 				data={data}
 				xScale={xScale}
-				xAccessor={xAccessor}
+				xAccessor={displayXAccessor}
 				xExtents={xExtents}
 			>
 				<Chart id={1} yExtents={[d => [d.high, d.low]]}>
-					<XAxis axisAt="bottom" orient="bottom" />
-					<XAxis axisAt="top" orient="top" />
-					<YAxis axisAt="right" orient="right" />
-					<YAxis axisAt="left" orient="left" />
+					<XAxis axisAt="bottom" orient="bottom" onGetAxisWidth={this.updateAxisWidth("bottom")} />
+					<XAxis axisAt="top" orient="top" onGetAxisWidth={this.updateAxisWidth("top")} />
+					<YAxis axisAt="right" orient="right" onGetAxisWidth={this.updateAxisWidth("right")} />
+					<YAxis axisAt="left" orient="left" onGetAxisWidth={this.updateAxisWidth("left")} />
+					<CandlestickSeries width={timeIntervalBarWidth(utcDay)}/>
 				</Chart>
 			</ChartCanvas>
 		);
@@ -67,8 +88,6 @@ ChartWithAxis.propTypes = {
 ChartWithAxis.defaultProps = {
 	type: "svg"
 };
-ChartWithAxis = fitWidth(
-	ChartWithAxis
-);
+const ChartWithAxisFit = fitWidth(ChartWithAxis);
 
-export default ChartWithAxis;
+export default ChartWithAxisFit;

@@ -24,38 +24,40 @@ class Axis extends Component {
 		return this.node.getMoreProps();
 	}
 
-	getCachedSizesKey() {
+	getTickLabelWidthsKey() {
 		const keyProps = [
-			'tickPadding',
-			'tickLabelFill',
-			'tickStroke',
-			'tickStrokeOpacity',
-			'tickStrokeWidth',
-			'orient',
-			'showTickLabel',
-			'fontSize', 
-			'fontFamily', 
-			'fontWeight', 
-			'showTicks', 
-			'flexTicks',
+			"tickPadding",
+			"tickLabelFill",
+			"tickStroke",
+			"tickStrokeOpacity",
+			"tickStrokeWidth",
+			"orient",
+			"showTickLabel",
+			"fontSize",
+			"fontFamily",
+			"fontWeight",
+			"showTicks",
+			"flexTicks",
 		];
-		return keyProps.map(prop => this.props[prop]).join('-');
+		return keyProps.map(prop => this.props[prop]).join("-");
 	}
 
-	getCachedSizes() {
-		const { onGetTickLabelDimensions } = this.props;
-		if (onGetTickLabelDimensions) {
-			const cachedSizesKey = this.getCachedSizesKey();
-			if (this.cachedSizesKey !== cachedSizesKey) {
-				this.cachedSizesKey = cachedSizesKey;
-				this.cachedSizes = {};
-			}
+	needTickLabelWidths() {
+		const { onGetAxisWidth, orient } = this.props;
+		return isDefined(onGetAxisWidth) && !isHorizontal(orient);
+	}
+
+	getTickLabelWidths() {
+		const key = this.getTickLabelWidthsKey();
+		if (this.tickLabelWidthsKey !== key) {
+			this.tickLabelWidthsKey = key;
+			this.tickLabelWidths = {};
 		}
-		return this.cachedSizes;
+		return this.tickLabelWidths;
 	}
 
 	drawOnCanvas(ctx, moreProps) {
-		const { showDomain, showTicks, transform, range, getScale, onGetTickLabelDimensions } = this.props;
+		const { showDomain, showTicks, transform, range, getScale, onGetAxisWidth, fontSize } = this.props;
 
 		ctx.save();
 		ctx.translate(transform[0], transform[1]);
@@ -63,22 +65,26 @@ class Axis extends Component {
 		if (showDomain) drawAxisLine(ctx, this.props, range);
 		if (showTicks) {
 			const tickProps = tickHelper(this.props, getScale(moreProps));
-			this.cachedSizes = drawTicks(ctx, tickProps, this.getCachedSizes());
+			const needTickLabelWidths = this.needTickLabelWidths();
+			if (needTickLabelWidths) {
+				this.tickLabelWidths = drawTicks(ctx, tickProps, this.getTickLabelWidths());
+			} else {
+				drawTicks(ctx, tickProps);
+			}
 
 			ctx.restore();
-			if (onGetTickLabelDimensions) {
-				const tickDimensions = Object.keys(this.cachedSizes).reduce((result, key) => {
-					const size = this.cachedSizes[key];
-					return {
-						width: Math.max(result.width, size.width),
-						height: Math.max(result.height, size.height),
-					};
-				}, {
-					width: 0,
-					height: 0
-				});
+			if (onGetAxisWidth) {
+				if (needTickLabelWidths) {
+					const maxWidth = Object.keys(this.tickLabelWidths).reduce((result, key) => {
+						const width = this.tickLabelWidths[key];
+						return Math.max(result, width);
+					}, 0);
 
-				onGetTickLabelDimensions(tickDimensions);
+					onGetAxisWidth(maxWidth);
+				} else {
+					const width = fontSize + getTickSpacing(this.props);
+					onGetAxisWidth(width);
+				}
 			}
 		} else {
 			ctx.restore();
@@ -133,6 +139,7 @@ Axis.propTypes = {
 	tickValues: PropTypes.oneOfType([PropTypes.array, PropTypes.func]),
 	tickInterval: PropTypes.number,
 	tickIntervalFunction: PropTypes.func,
+	fontSize: PropTypes.number,
 	showDomain: PropTypes.bool,
 	showTicks: PropTypes.bool,
 	className: PropTypes.string,
@@ -148,7 +155,8 @@ Axis.propTypes = {
 	edgeClip: PropTypes.bool.isRequired,
 	onContextMenu: PropTypes.func,
 	onDoubleClick: PropTypes.func,
-	onGetTickLabelDimensions: PropTypes.func,
+	onGetAxisWidth: PropTypes.func,
+	orient: PropTypes.oneOf(["left", "top", "bottom", "right"]).isRequired,
 };
 
 Axis.defaultProps = {
@@ -157,9 +165,18 @@ Axis.defaultProps = {
 	edgeClip: false,
 };
 
+function isHorizontal(orient) {
+	return orient === "bottom" || orient === "top";
+}
+
+function getTickSpacing(props) {
+	const { innerTickSize, tickPadding } = props;
+	return Math.max(innerTickSize, 0) + tickPadding;
+}
+
 function tickHelper(props, scale) {
 	const {
-		orient, innerTickSize, tickFormat, tickPadding,
+		orient, innerTickSize, tickFormat,
 		tickLabelFill, tickStrokeWidth, tickStrokeDasharray,
 		fontSize, fontFamily, fontWeight, showTicks, flexTicks,
 		showTickLabel
@@ -200,11 +217,11 @@ function tickHelper(props, scale) {
 		: d => tickFormat(d) || "";
 
 	const sign = orient === "top" || orient === "left" ? -1 : 1;
-	const tickSpacing = Math.max(innerTickSize, 0) + tickPadding;
+	const tickSpacing = getTickSpacing(props);
 
 	let ticks, dy, canvas_dy, textAnchor;
 
-	if (orient === "bottom" || orient === "top") {
+	if (isHorizontal(orient)) {
 		dy = sign < 0 ? "0em" : ".71em";
 		canvas_dy = sign < 0 ? 0 : (fontSize * .71);
 		textAnchor = "middle";
@@ -292,7 +309,7 @@ function drawAxisLine(ctx, props, range) {
 	const { orient, outerTickSize, stroke, strokeWidth, opacity } = props;
 
 	const sign = orient === "top" || orient === "left" ? -1 : 1;
-	const xAxis = (orient === "bottom" || orient === "top");
+	const xAxis = isHorizontal(orient);
 
 	// var range = d3_scaleRange(xAxis ? xScale : yScale);
 
@@ -315,7 +332,7 @@ function drawAxisLine(ctx, props, range) {
 	ctx.stroke();
 }
 
-function drawTicks(ctx, result, cachedSizes) {
+function drawTicks(ctx, result, cachedLabelWidths) {
 	const { tickStroke, tickStrokeOpacity, tickLabelFill } = result;
 	const { textAnchor, fontSize, fontFamily, fontWeight, ticks, showTickLabel } = result;
 
@@ -332,16 +349,12 @@ function drawTicks(ctx, result, cachedSizes) {
 	ctx.fillStyle = tickLabelFill;
 	ctx.textAlign = textAnchor === "middle" ? "center" : textAnchor;
 
+	console.log("drawTicks 1", showTickLabel, cachedLabelWidths);
 	if (showTickLabel) {
-		return ticks.reduce((newCachedSizes, tick) => {
-			const newSize = drawEachTickLabel(ctx, tick, result, cachedSizes);
-			return {
-				...newCachedSizes,
-				...newSize
-			};
-		}, {});
+		console.log("drawTicks 2");
+		return ticks.reduce(drawEachTickLabel(ctx, result), cachedLabelWidths);
 	}
-	return cachedSizes;
+	return cachedLabelWidths;
 }
 
 function drawEachTick(ctx, tick, result) {
@@ -356,35 +369,30 @@ function drawEachTick(ctx, tick, result) {
 	ctx.stroke();
 }
 
-function drawEachTickLabel(ctx, tick, result, cachedSizes) {
-	const { orient, canvas_dy, format, fontSize, tickSpacing, onGetTickLabelDimensions } = result;
-	const xAxis = (orient === "bottom" || orient === "top");
+const drawEachTickLabel = (ctx, result) => (cachedWidths, tick) => {
+	const { canvas_dy, format, tickSpacing } = result;
 
 	const text = format(tick.value);
 	ctx.beginPath();
 	ctx.fillText(text, tick.labelX, tick.labelY + canvas_dy);
 
-	if (onGetTickLabelDimensions) {
-		if (cachedSizes[text]) {
-			return {
-				text: cachedSizes[text]
-			};
+	console.log("drawEachTickLabel 1", cachedWidths);
+	if (cachedWidths) {
+		console.log("drawEachTickLabel 2", cachedWidths);
+		if (cachedWidths[text]) {
+			return cachedWidths;
 		} else {
 			const { width } = ctx.measureText(text);
-
-			const widthSpacing = xAxis ? 0 : tickSpacing;
-			const heightSpacing = xAxis ? tickSpacing : 0;
+			console.log("drawEachTickLabel 3", width);
 
 			return {
-				[text]: {
-					width: widthSpacing + width,
-					height: heightSpacing + fontSize
-				}
+				...cachedWidths,
+				[text]: tickSpacing + width,
 			};
 		}
 	} else {
-		return {};
+		return cachedWidths;
 	}
-}
+};
 
 export default Axis;

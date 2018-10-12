@@ -38,11 +38,12 @@ YAxis.propTypes = {
 	yZoomWidth: PropTypes.number,
 	tickValues: PropTypes.array,
 	showTicks: PropTypes.bool,
+	showTickLabel: PropTypes.bool,
 	className: PropTypes.string,
 	zoomEnabled: PropTypes.bool,
 	onContextMenu: PropTypes.func,
 	onDoubleClick: PropTypes.func,
-	onGetTickLabelDimensions: PropTypes.func,
+	onGetAxisWidth: PropTypes.func,
 };
 
 YAxis.defaultProps = {
