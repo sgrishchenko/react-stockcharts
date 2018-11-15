@@ -1,6 +1,7 @@
 {
   "name": "@coinspot-official/react-stockcharts",
   "version": "0.7.8-fork.0.0.5",
+  "sideEffects": false,
   "description": "Highly customizable stock charts with ReactJS and d3",
   "main": "src/index.js",
   "module": "src/index.js",
