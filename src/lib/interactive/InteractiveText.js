@@ -101,12 +101,14 @@ class InteractiveText extends Component {
 		} */
 	}
 	render() {
-		const { textList, defaultText, hoverText } = this.props;
+		const { textList, defaultText, hoverText, strokeWhenHovered, textPadding } = this.props;
 		const { override } = this.state;
 		return <g>
 			{textList.map((each, idx) => {
 				const defaultHoverText = InteractiveText.defaultProps.hoverText;
 				const props = {
+					strokeWhenHovered,
+					textPadding,
 					...defaultText,
 					...each,
 					hoverText: {
@@ -145,13 +147,17 @@ InteractiveText.propTypes = {
 	onChoosePosition: PropTypes.func.isRequired,
 	onDragComplete: PropTypes.func.isRequired,
 	onSelect: PropTypes.func,
+	strokeWhenHovered: PropTypes.bool.isRequired,
 
 	defaultText: PropTypes.shape({
 		bgFill: PropTypes.string.isRequired,
+		bgFillHover: PropTypes.string,		
 		bgOpacity: PropTypes.number.isRequired,
 		bgStrokeWidth: PropTypes.number,
 		bgStroke: PropTypes.string,
+		bgStrokeHover: PropTypes.string,		
 		textFill: PropTypes.string.isRequired,
+		textFillHover: PropTypes.string,		
 		fontFamily: PropTypes.string.isRequired,
 		fontWeight: PropTypes.string.isRequired,
 		fontStyle: PropTypes.string.isRequired,
@@ -162,12 +168,15 @@ InteractiveText.propTypes = {
 	hoverText: PropTypes.object.isRequired,
 	textList: PropTypes.array.isRequired,
 	enabled: PropTypes.bool.isRequired,
+	textPadding: PropTypes.number,
 };
 
 InteractiveText.defaultProps = {
 	onChoosePosition: noop,
 	onDragComplete: noop,
 	onSelect: noop,
+	strokeWhenHovered: true,
+	textPadding: undefined,
 
 	defaultText: {
 		bgFill: "#D3D3D3",

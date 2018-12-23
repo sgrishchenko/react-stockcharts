@@ -1,5 +1,6 @@
 import React, { Component } from "react";
 import PropTypes from "prop-types";
+import debounce from "lodash.debounce";
 
 import { noop } from "../../utils";
 import { saveNodeType, isHover } from "../utils";
@@ -12,7 +13,7 @@ class EachText extends Component {
 	constructor(props) {
 		super(props);
 
-		this.handleHover = this.handleHover.bind(this);
+		this.handleHover = debounce(this.handleHover.bind(this), 1000);
 
 		this.handleDragStart = this.handleDragStart.bind(this);
 		this.handleDrag = this.handleDrag.bind(this);
@@ -64,21 +65,70 @@ class EachText extends Component {
 
 		onDrag(index, xyValue);
 	}
-	handleHover(moreProps) {
+	handleHover(moreProps, hoverRect) {
 		if (this.state.hover !== moreProps.hovering) {
 			this.setState({
-				hover: moreProps.hovering
+				hover: moreProps.hovering,
+				hoverRect: hoverRect || null
 			});
 		}
 	}
+
+	onDeleteControlHover() {
+
+	}
+
+	onDeleteControlUnHover() {
+		
+	}
+
+	renderDeleteControl() {
+		const {hoverRect} = this.state;
+		if (hoverRect) {
+			const deleteButtonWidth = 20;
+			const deleteButtonPadding = 15;
+			const left = hoverRect.x + hoverRect.width + deleteButtonPadding;
+			const top = hoverRect.y + (hoverRect.height - deleteButtonWidth) / 2;
+			const width = deleteButtonWidth;
+			const height = deleteButtonWidth;
+
+			const makeEvent = name => e => {
+				console.log(name, e);
+			};
+
+			return (
+				<g
+					onMouseEnter={makeEvent('onmouseenter 1')}
+					onMouseLeave={makeEvent('onmouseleave 1')}
+				>
+					<rect 
+						x={left} 
+						y={top} 
+						width={width} 
+						height={height} 
+						fill={'red'} 
+						onMouseEnter={makeEvent('onmouseenter 2')}
+						onMouseLeave={makeEvent('onmouseleave 2')}	
+					/>
+				</g>
+			);
+		}
+		else {
+			return null;
+		}
+	}
+
 	render() {
 		const {
 			position,
 			bgFill,
+			bgFillHover,
 			bgOpacity,
 			bgStroke,
+			bgStrokeHover,
 			bgStrokeWidth,
 			textFill,
+			textFillHover,
 			fontFamily,
 			fontSize,
 			fontWeight,
@@ -87,6 +137,8 @@ class EachText extends Component {
 			hoverText,
 			selected,
 			onDragComplete,
+			strokeWhenHovered,
+			textPadding,
 		} = this.props;
 		const { hover } = this.state;
 
@@ -102,28 +154,37 @@ class EachText extends Component {
 			...restHoverTextProps
 		} = hoverText;
 
+		const props = {
+			onDragComplete,
+			position,
+			bgFill,
+			bgFillHover,
+			bgOpacity,
+			bgStroke: bgStroke || textFill,
+			bgStrokeHover: bgStrokeHover || textFillHover,
+			bgStrokeWidth,
+			textFill,
+			textFillHover,
+			fontFamily,
+			fontStyle,
+			fontWeight,
+			fontSize,
+			text,
+			textPadding,
+		};
+
 		return <g>
 			<InteractiveText
 				ref={this.saveNodeType("text")}
-				selected={selected || hover}
+				selected={selected || (hover && strokeWhenHovered)}
 				interactiveCursorClass="react-stockcharts-move-cursor"
 				{...hoverHandler}
+				{...props}
 
 				onDragStart={this.handleDragStart}
 				onDrag={this.handleDrag}
-				onDragComplete={onDragComplete}
-				position={position}
-				bgFill={bgFill}
-				bgOpacity={bgOpacity}
-				bgStroke={bgStroke || textFill}
-				bgStrokeWidth={bgStrokeWidth}
-				textFill={textFill}
-				fontFamily={fontFamily}
-				fontStyle={fontStyle}
-				fontWeight={fontWeight}
-				fontSize={fontSize}
-				text={text}
 			/>
+			{this.renderDeleteControl()}
 			<HoverTextNearMouse
 				show={hoverTextEnabled && hover}
 				{...restHoverTextProps}
@@ -132,26 +193,23 @@ class EachText extends Component {
 		</g>;
 	}
 }
-/*
-export function getNewXY(moreProps, snapTo) {
-	const { xScale, xAccessor, plotData, mouseXY } = moreProps;
 
-	const currentItem = getCurrentItem(xScale, xAccessor, mouseXY, plotData);
-	const x = xAccessor(currentItem);
-	const y = snapTo(currentItem);
-
-	return [x, y];
-}
- */
 EachText.propTypes = {
 	index: PropTypes.number,
 
 	position: PropTypes.array.isRequired,
+
 	bgFill: PropTypes.string.isRequired,
+	bgFillHover: PropTypes.string,
+
 	bgOpacity: PropTypes.number.isRequired,
+
 	bgStrokeWidth: PropTypes.number.isRequired,
 	bgStroke: PropTypes.string,
+	bgStrokeHover: PropTypes.string,
+
 	textFill: PropTypes.string.isRequired,
+	textFillHover: PropTypes.string,
 
 	fontWeight: PropTypes.string.isRequired,
 	fontFamily: PropTypes.string.isRequired,
@@ -165,11 +223,15 @@ EachText.propTypes = {
 	onDragComplete: PropTypes.func.isRequired,
 
 	hoverText: PropTypes.object.isRequired,
+	textPadding: PropTypes.number,
+	strokeWhenHovered: PropTypes.bool.isRequired,
 };
 
 EachText.defaultProps = {
 	onDrag: noop,
 	onDragComplete: noop,
+	textPadding: undefined,	
+	strokeWhenHovered: true,
 	bgOpacity: 1,
 	bgStrokeWidth: 1,
 	selected: false,
