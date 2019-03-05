@@ -564,6 +564,20 @@ class ChartCanvas extends Component {
 			});
 		}
 	}
+	checkLoadMoreForWidthChange() {
+		const { xAccessor, xScale } = this.state;
+		const { fullData } = this;
+
+		const firstItem = head(fullData);
+
+		const start = head(xScale.domain());
+		const end = xAccessor(firstItem);
+		const { onLoadMore } = this.props;
+
+		if (start < end) {
+			onLoadMore(start, end);
+		}
+	}	
 	handlePinchZoomEnd(initialPinch, e) {
 		const { xAccessor } = this.state;
 
@@ -1011,7 +1025,14 @@ class ChartCanvas extends Component {
 			*/
 			this.clearThreeCanvas();
 
-			this.setState(state);
+			const widthGrown = getDimensions(nextProps).width > getDimensions(this.props).width;
+			this.setState(state, 
+				widthGrown
+				? () => {
+					this.checkLoadMoreForWidthChange();
+				}
+				: undefined
+			);
 		}
 		this.fullData = fullData;
 	}
